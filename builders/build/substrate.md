@@ -19,12 +19,24 @@ The Substrate framework is designed for maximum customizability, providing a ful
 
 The architecture of a Substrate node contains two main components:
 
-- **Runtime** - implements the custom logic of the Appchain, executes transactions, and manages the state transitions
 - **Core Client** - handles the communication with the outer world (other nodes, DApps, etc), and many other internal responsibilities, such as storage and communication
+- **Runtime** - implements the custom logic of the Appchain, executes transactions, and manages the state transitions
 
 The end users can interact with the Appchain using the DApps (or directly via the node RPC endpoints) and get data or send transactions, which will remain queued until execution in the runtime.
 
 ![Basic substrate node architecture](/images/builders/substrate/substrate-1.png )
+
+## The Core Client {: #core-client }
+
+The core client is comprised of components that are responsible for everything in the operation of a node in the network, except for what happens in the runtime. 
+
+Some of the main components are: 
+
+- **Networking** - this component handles the communication with the peers in the network (synchronizing blocks, propagating transactions, and so on) and exposes the endpoints that allow DApps of end users to interact with the Appchain
+- **Storage** - this component manages the state storage of the Appchain in a highly efficient key-value database
+- **Consensus** - this component ensures that all the participants in the network agree on the state of the blockchain, validating transactions, state transitions, and the resulting blocks
+
+The default configuration of a Substrate node and the implementations of the components are usually the best choice for most of the use cases, but teams can innovate and change or replace any piece of what constitutes the node.
 
 ## The Runtime {: #runtime }
 
@@ -35,9 +47,7 @@ In Substrate architecture, an important decision has been made regarding the for
 The wasm format offers many advantages to a ContainerChain, including:
 
 - **Portability** - the wasm format is platform-independent, meaning that the same binary can be distributed and run in different nodes using different hardware architectures and operating systems
-
 - **Deterministic Execution** - the wasm format ensures deterministic execution of code, which means that the same input will always produce the same output. Determinacy is a critical aspect in blockchains to obtain the same state transitions across every node in the network
-
 - **Forkless Upgradeability** - Substrate stores the runtime wasm blob on-chain, meaning that the runtime itself becomes part of the state. This design allows upgrading the runtime logic in a forkless way, by using an extrinsic. 
 
 ### Configuring the runtime
@@ -141,30 +151,13 @@ fn testnet_genesis(
 }
 ```
 
-For example, if a module is needed and not present in the EVM template, to add i
+## Interacting with the node
 
+As covered in the [Prerequisites](/builders/build/prerequisites) section, the node can be compiled and now it would be ready to be run and to interact with.
 
-Add a pallet that has some functionality you want to use.
-Change some constant values.
-Update the runtime version.
-Recompile the runtime to include your changes.
-Submit a transaction to update the runtime stored on-chain.
-
-
-
-
-## The Core Client {: #core-client }
-
-
-Modularity and 
-    Explain de outer node and the runtime
-### Customizing Core Client
-    how to change outer node characteristics
-
-## Working with the node
-
-    configure the runtime
-
-Working with the node
-    build and start
+1. To run the node, use the following command
+´´´bash
+./target/release/container-chain-template-frontier-node --dev
+´´´
+1. In a Chrome (or Chromium) browser, go to [polkadot.js](https://polkadot.js.org/apps/){target=_blank}
 
