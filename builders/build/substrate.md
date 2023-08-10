@@ -7,19 +7,19 @@ description: Substrate is a powerful and modular blockchain framework built in R
 
 ## Introduction {: #introduction }
 
-Substrate is a software development kit (SDK) for building blockchains. This framework is the foundation and engine powering the Polkadot's relay chain, the parachains (such as the Tanssi network itself), and also the ContainerChains deployed through Tanssi. 
+Substrate is a software development kit (SDK) for building blockchains. This framework is the foundation and engine powering the Polkadot's relay chain, the parachains (such as the Tanssi network itself), and the ContainerChains deployed through Tanssi. 
 
-Written in the Rust Language, and designed with a modular architecture, Substrate is extremely performant, flexible, and highly customizable, making it the best choice to develop blockchains.
+Written in the Rust Language and designed with a modular architecture, Substrate is extremely performant, flexible, and highly customizable, making it the best choice for developing blockchains.
 
 In this article, the architecture of Substrate and how to add modules to the runtime is covered.
 
 ## Architecture {: #architecture }
 
-The Substrate framework is designed for maximum customizability, providing a fully functional implementation for every important internal aspect of a blockchain. It allows developers to focus on the specifics of the use case and the characteristics of the runtime, and to change any of the default features, should the need arise.
+The Substrate framework is designed for maximum customizability, providing a fully functional implementation for every important internal aspect of a blockchain. It allows developers to focus on the specifics of the use case and the runtime characteristics and to change any of the default features (should the need arise).
 
 The architecture of a Substrate node contains two main components:
 
-- **Core Client** - handles the communication with the outer world (other nodes, DApps, etc), and many other internal responsibilities, such as storage and communication
+- **Core Client** - handles the communication with the outer world (other nodes, DApps, etc.), and many other internal responsibilities, such as storage and communication
 - **Runtime** - implements the custom logic of the Appchain, executes transactions, and manages the state transitions
 
 The end users can interact with the Appchain using the DApps (or directly via the node RPC endpoints) and get data or send transactions, which will remain queued until execution in the runtime.
@@ -28,7 +28,7 @@ The end users can interact with the Appchain using the DApps (or directly via th
 
 ## The Core Client {: #core-client }
 
-The core client is comprised of components that are responsible for everything in the operation of a node in the network, except for what happens in the runtime. 
+The core client comprises components responsible for everything in the operation of a node in the network except for what happens in the runtime. 
 
 Some of the main components are: 
 
@@ -36,7 +36,7 @@ Some of the main components are:
 - **Storage** - this component manages the state storage of the Appchain in a highly efficient key-value database
 - **Consensus** - this component ensures that all the participants in the network agree on the state of the blockchain, validating transactions, state transitions, and the resulting blocks
 
-The default configuration of a Substrate node and the implementations of the components are usually the best choice for most of the use cases, but teams are welcome to innovate and change or replace any piece of what constitutes the node.
+The default configuration of a Substrate node and the implementations of the components are usually the best choice for most use cases. Still, teams are welcome to innovate and change or replace any piece of what constitutes the node.
 
 ## The Runtime {: #runtime }
 
@@ -52,7 +52,7 @@ The wasm format offers many advantages to a ContainerChain, including:
 
 ### Adding a Module to the Runtime {: #adding-a-module }
 
-As covered in the [modularity](learn/framework/modules) article, building a Substrate runtime is about composing modules, mixing some of the already provided and ready-to-use, and custom-made modules that implement any logic specific to the use case.
+As the [modularity](learn/framework/modules) article covers, building a Substrate runtime is about composing modules, mixing some of the already provided and ready-to-use and custom-made modules that implement any logic specific to the use case.
 
 In the following example, the module called *pallet-assets* will be added to the runtime of the EVM template found in the [Tanssi repository](https://github.com/moondance-labs/tanssi){target=_blank}:
 
@@ -151,4 +151,4 @@ fn testnet_genesis(
 }
 ```
 
-With the module included, this new version of the runtime has unlocked a new set of functionalities that are ready to be composed with even more of the Substrate built-in modules or the custom-made ones.
+With the module included, this new runtime version has unlocked a new set of functionalities ready to be composed with even more of the Substrate built-in modules or the custom-made ones.
