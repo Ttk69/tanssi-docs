@@ -11,7 +11,7 @@ Substrate is a software development kit (SDK) for building blockchains. This fra
 
 Written in the Rust Language, and designed with a modular architecture, Substrate is extremely performant, flexible, and highly customizable, making it the best choice to develop blockchains.
 
-In this article, key features of Substrate needed to develop an Appchain are covered.
+In this article, the architecture of Substrate and how to add modules to the runtime is covered.
 
 ## Architecture {: #architecture }
 
@@ -32,11 +32,11 @@ The core client is comprised of components that are responsible for everything i
 
 Some of the main components are: 
 
-- **Networking** - this component handles the communication with the peers in the network (synchronizing blocks, propagating transactions, and so on) and exposes the endpoints that allow DApps of end users to interact with the Appchain
+- **Networking** - this component handles the communication with the peers in the network (synchronizing blocks, propagating transactions, and so on) and exposes the endpoints that allow DApps to integrate and interact with the Appchain
 - **Storage** - this component manages the state storage of the Appchain in a highly efficient key-value database
 - **Consensus** - this component ensures that all the participants in the network agree on the state of the blockchain, validating transactions, state transitions, and the resulting blocks
 
-The default configuration of a Substrate node and the implementations of the components are usually the best choice for most of the use cases, but teams can innovate and change or replace any piece of what constitutes the node.
+The default configuration of a Substrate node and the implementations of the components are usually the best choice for most of the use cases, but teams are welcome to innovate and change or replace any piece of what constitutes the node.
 
 ## The Runtime {: #runtime }
 
@@ -48,13 +48,13 @@ The wasm format offers many advantages to a ContainerChain, including:
 
 - **Portability** - the wasm format is platform-independent, meaning that the same binary can be distributed and run in different nodes using different hardware architectures and operating systems
 - **Deterministic Execution** - the wasm format ensures deterministic execution of code, which means that the same input will always produce the same output. Determinacy is a critical aspect in blockchains to obtain the same state transitions across every node in the network
-- **Forkless Upgradeability** - Substrate stores the runtime wasm blob on-chain, meaning that the runtime itself becomes part of the state. This design allows upgrading the runtime logic in a forkless way, by using an extrinsic. 
+- **Forkless Upgradeability** - Substrate stores the runtime wasm blob on-chain, meaning that the runtime itself becomes part of the state. This design allows upgrading the runtime logic in a forkless way using a transaction
 
-### Configuring the runtime
+### Adding a Module to the Runtime {: #adding-a-module }
 
 As covered in the [modularity](learn/framework/modules) article, building a Substrate runtime is about composing modules, mixing some of the already provided and ready-to-use, and custom-made modules that implement any logic specific to the use case.
 
-In the following example, the module called *pallet-assets* will be added to the runtime of the EVM template:
+In the following example, the module called *pallet-assets* will be added to the runtime of the EVM template found in the [Tanssi repository](https://github.com/moondance-labs/tanssi){target=_blank}:
 
 1. Open the *Cargo.toml* file located in the folder *container-chains/templates/frontier/runtime/* with a text editor and add the dependency 
 ```toml
@@ -151,13 +151,4 @@ fn testnet_genesis(
 }
 ```
 
-## Interacting with the node
-
-As covered in the [Prerequisites](/builders/build/prerequisites) section, the node can be compiled and now it would be ready to be run and to interact with.
-
-1. To run the node, use the following command
-´´´bash
-./target/release/container-chain-template-frontier-node --dev
-´´´
-1. In a Chrome (or Chromium) browser, go to [polkadot.js](https://polkadot.js.org/apps/){target=_blank}
-
+With the module included, this new version of the runtime has unlocked a new set of functionalities that are ready to be composed with even more of the Substrate built-in modules or the custom-made ones.
