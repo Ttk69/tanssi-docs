@@ -33,10 +33,37 @@ This base setup is configured in the templates and requires no attention from de
 
 ## Baseline Appchain template
 
-Teams willing to build a substrate runtime can start composing the built-in modules and their own custom-made logic with this template.
+Teams willing to build a substrate runtime can start composing the built-in modules and their custom-made logic with this template, which includes a runtime containing only the minimum required references to other modules.
 
-This template is boilerplate and the entry 
+```rust
+construct_runtime!(
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = opaque::Block,
+        UncheckedExtrinsic = UncheckedExtrinsic,
+    {
+        ...
 
+        // Monetary stuff.
+        Balances: pallet_balances = 10,
+
+        // ContainerChain Author Verification
+        AuthoritiesNoting: pallet_cc_authorities_noting = 50,
+        AuthorInherent: pallet_author_inherent = 51,
+        
+        // Add your custom logic here
+        ...
+
+    }
+);
+```
 
 ## Baseline EVM (Ethereum Virtual Machine) Template
 
+Teams building smart contracts on top of an EVM can use this template as a boilerplate, containing all the necessary references to add the extra layer of Ethereum compatibility to a Substrate node: 
+
+- **EVM** - this module adds the execution layer for Ethereum apps
+- **Ethereum** - this module adds the Ethereum block production emulation, so RPC nodes (and DApps) can run without any modification
+- **EVMChainId** - stores the chain id that identifies the Ethereum network
+
+If the use case is developed on top of an EVM, this template requires no additional changes in the runtime and is ready to build and deploy through Tanssi.
