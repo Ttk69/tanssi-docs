@@ -14,13 +14,13 @@ The example presented in the [Modularity](/learn/framework/modules/#custom-modul
 - **Buy tickets**
 - **Award prize**
 
-The implementation of those transactions also uses storage, emits events, defines custom errors, and relies on other modules to handle currency (to charge for the tickets and transfer the total amount to the winner) and randomize the winner selection. This implementation is not intended for production
+The implementation of those transactions also uses storage, emits events, defines custom errors, and relies on other modules to handle currency (to charge for the tickets and transfer the total amount to the winner) and randomize the winner selection.
 
 In this article, the following steps, necessary to build and add the example module to the runtime, will be covered: 
 
 1. Create the lottery module files (package)
 2. Configure the module's dependencies
-3. Add the code with the custom logic
+3. Adding custom logic
 4. Configure the runtime with the new module
 
 It is important to note that none of the code presented in this article is intended for production use.
@@ -29,7 +29,7 @@ It is important to note that none of the code presented in this article is inten
 
 Before starting to write code, the files containing the logic need to be created. As modules in Substrate are inherently abstract and can be reused in many different runtimes with different customizations, it is Cargo, the Rust language package manager, the command that creates the module, in the format of a new package.
 
-From the root folder of the repository, navigate to the folder `pallets`, where the module will be created.
+Clone the [Tanssi repository](https://github.com/moondance-labs/tanssi){target=_blank}, and from the root folder navigate to `pallets`, where the module will be created.
 
 ```bash
 cd container-chains/pallets
@@ -77,7 +77,7 @@ The full example of the `Cargo.toml` file sets, besides the attributes, the depe
 
 ## Adding Custom Logic {: #adding-custom-logic}
 
-As presented in the [custom-made module](/learn/framework/modules/#custom-modules){target=_blank} section of the modularity article, creating a module involves implementing the following attribute macros, where the first three are mandatory:
+As presented in the [custom-made module](/learn/framework/modules/#custom-modules){target=_blank} section of the modularity article, creating a module involves implementing the following attribute macros, of which the first three are mandatory:
 
 1. `#[frame_support::pallet]` - this attribute is the entry point that marks the module as usable in the runtime
 2. `#[pallet::pallet]` - applied to a structure that is used to retrieve module information easily
@@ -89,7 +89,7 @@ As presented in the [custom-made module](/learn/framework/modules/#custom-module
 
 ### Implementing the Module Basic Structure {: #implementing-basic-structure }
 
-The first two mandatory macros, `#[frame_support::pallet]` and `#[pallet::pallet]`, provide the basic structure of the module and are required to enable the module to be used in the runtime.
+The first two mandatory macros, `#[frame_support::pallet]` and `#[pallet::pallet]`, provide the basic structure of the module and are required to enable the module to be used in a Substrate runtime.
 
 The following snippet shows the general structure of a custom Substrate module.
 
@@ -115,10 +115,12 @@ In this example, the lottery module depends on other modules to manage the curre
 
 1. Events: the module depends on the runtime's definition of an event to be able to emit them.
 2. Currency: this module needs to transfer funds, hence, it needs the definition of the currency system from the runtime
-3. Randomness: to select the winner of the prize, from the list of participants 
+3. Randomness: to fairly select the winner of the prize from the list of participants 
 4. Ticket cost: the price to charge the buyers that participate in the lottery
 5. Maximum number of participants: the top limit of participants allowed in each lottery round
-6. Module Id: every module has an identifier, this is required to access the module account to hold the participant's funds until transferred to the winner
+6. Module Id: the module unique identifier is required to access the module account to hold the participant's funds until transferred to the winner
+
+The implementation of the described configuration for this example is shown in the following code snippet:
 
 ```rust
 #[pallet::config]
@@ -177,7 +179,7 @@ impl<T: Config> Pallet<T> {
 Every call is enclosed within the `#[pallet::call]` macro, and present the following elements: 
 
 - **Call Index** - is a mandatory unique identifier for every dispatchable call
-- **Weight** - is a measure of computational effort an extrinsic takes when being processed
+- **Weight** - is a measure of computational effort an extrinsic takes when being processed. More about weights in the [Substrate documentation](https://docs.substrate.io/build/tx-weights-fees/){target=_blank}
 - **Origin** - identifies the signing account making the call
 - **Result** - the return value of the call, which might be an Error if anything goes wrong
 
@@ -195,7 +197,8 @@ impl<T: Config> Pallet<T> {
         // 2. Checks that the user has enough balance to afford the ticket price
         // 3. Checks that the user is not already participating
         // 4. Adds the user as a new participant for the prize
-        // 5. Transfers the ticket cost to the module's account, to hold until transferred to the winner
+        // 5. Transfers the ticket cost to the module's account, to be hold until transferred to the winner
+        // 6. Notify the event
     
     }
 
@@ -272,16 +275,31 @@ pub(super) type Participants<T: Config> = StorageValue<
     OptionQuery
 >;
 ```
+### The Complete Module {: #complete-module }
+
+Putting all the pieces together, after implementing all the required macros and adding the custom logic, now the module is complete and ready to be used in the runtime. 
+
+??? code "View the complete module file"
+
+    ```rust
+    --8<-- 'code/modules/lottery-example.rs'
+    ```
 
 ## Configure the Runtime {: #configure-runtime }
 
 Finally, with the module finished, it can be included in the runtime. By doing so, the transactions buy_tickets and award_prize will be callable by the users.
 
-First, configure the modules:
+To configure the runtime, open the `lib.rs` file, that contains the definition for the runtime of the included EVM template and is located in the folder:
+
+```text
+*/container-chains/templates/frontier/runtime/src/
+```
+
+To add the lottery module, configure the modules as follows:
 
 ```rust
 
-// Add the configuration for randomness module
+// Add the configuration for randomness module. No parameters needed.
 impl pallet_insecure_randomness_collective_flip::Config for Runtime {
 }
 
@@ -301,7 +319,7 @@ impl pallet_lottery_example::Config for Runtime {
 }
 ```
 
-And in the construction of the runtime, add the randomness and lottery module.
+With the modules configured, add in the macro `construct_runtime!` (that defines the modules that will be included when building the runtime) add the randomness and lottery module.
 
 ```rust
 construct_runtime!(
