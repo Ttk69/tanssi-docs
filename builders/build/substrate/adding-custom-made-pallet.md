@@ -1,5 +1,5 @@
 ---
-title: Custom-made module
+title: Custom-Made Module
 description: Substrate is a modular blockchain framework that makes it easy to build unique and innovative Appchains composing built-in modules with custom-made ones.
 ---
 
@@ -7,141 +7,232 @@ description: Substrate is a modular blockchain framework that makes it easy to b
 
 ## Introduction {: #introduction }
 
-By providing a comprehensive library of pre-built modules addressing many common requirements, the framework simplifies the process of building an Appchain and accelerates the deployment and evolution into a ContainerChain, nevertheless, addressing an innovative use case usually requires a development effort to fully meet the requirements.
+By providing a comprehensive library of pre-built modules addressing many common requirements, the framework greatly simplifies the process of building an Appchain and accelerates the deployment and evolution into a ContainerChain, nevertheless, addressing an innovative use case usually requires a development effort to fully meet the requirements, and, in Substrate, adding custom logic translates into writing and integrating runtime modules. 
 
-In this article, how to create a simple module step by step will be covered.
+Continuing the example presented in [Modularity](/learn/framework/modules/#custom-module-example), the step-by-step process of how to create the module will be covered in this article.
 
-## Adding a Built-in Module to the Runtime {: #adding-a-built-in-module }
+## Creating the Lottery Module {: #creating-lottery-module } 
 
-As the [modularity](/learn/framework/modules) article covers, the Substrate framework already includes many built-in modules addressing a wide range of functionalities ready to use in your runtime.
+As presented in the [custom-made module](/learn/framework/modules/#custom-modules) section of the modularity article, creating a module involves implementing the following attribute macros, where the first three are mandatory:
 
-To add a module, it will be necessary:
+1. `#[frame_support::pallet]`
+2. `#[pallet::pallet]`
+3. `#[pallet::config]`
+4. `#[pallet::call]`
+5. `#[pallet::error]`
+6. `#[pallet::event]`
+7. `#[pallet::storage]`
 
-1. Make the dependency available within the project by declaring it in [Cargo](https://doc.rust-lang.org/cargo/){target=_blank}, the Rust language package manager
-2. Make the standard (`std`) features of the module available to the compiler
-3. Configure the module
-4. Add the module to the runtime
-5. Add default configuration in the chain specification
+But before starting to write code, the files containing the logic need to be created. From the root folder of the repository, navigate to the folder `pallets`, where the module will be created.
 
-In the following example, the very popular Substrate module `pallet-assets` will be added to the runtime of the provided EVM template, found in the [Tanssi repository](https://github.com/moondance-labs/tanssi){target=_blank}, specifically in the folder `container-chains/templates/frontier/`.
-
-### Declare the dependency {: #declare-dependency }
-
-Every package contains a manifest file named `Cargo.toml` stating, among other things, all the dependencies the package relies on, and the ContainerChain runtime is no exception. 
-
-To declare the dependency and make it available to the runtime, open the `Cargo.toml` file located in the folder `runtime` with a text editor and add the module, referencing the code in the official repository of the Polkadot SDK:
-
-```toml
-[dependencies]
-...
-pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
-...
+```bash
+cd container-chains/pallets
 ```
 
-### Make the standard features available to the compiler {: #standard-features }
+Create the module with cargo, which creates a new package:
 
-In the `Cargo.toml` file there is a features section where the features from the module marked as standard must be added, to make them available to the compiler to build the runtime binary:
-
-```toml
-[features]
-default = [
-	"std",
-]
-std = [
-	...,
-	"pallet-assets/std",
-   ...
-]
+```bash
+cargo new lottery-example
 ```
-### Configure the Module {: #configure-the-module }
 
-With the dependency declared, now the module can be configured and added to the runtime to use it. It is done in the `lib.rs` file that is located in the folder */runtime/src*.
+By default, the package creates a file `main.rs` located in a folder `src`, but to respect the naming convention used in Substrate, rename the file to `lib.rs`:
 
-The following code snippet is a basic example that configures the module with types, constants and default values. These values must be adjusted to the specific requirements of the use case.
+```bash
+mv lottery-example/src/main.rs lottery-example/src/lib.rs
+```
+
+Now the module file `lib.rs` is created and ready to contain the custom logic.
+
+### Implementing `#[frame_support::pallet]` and `#[pallet::pallet]`
+
+The implementation of these macros and the code structure are mandatory to enable the module to be used in the runtime.
 
 ```rust
-...
-parameter_types! {
-	pub const AssetDeposit: Balance = 100;
-	pub const ApprovalDeposit: Balance = 1;
-	pub const StringLimit: u32 = 50;
-	pub const MetadataDepositBase: Balance = 10;
-	pub const MetadataDepositPerByte: Balance = 1;
-}
-
-impl pallet_assets::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Balance = u128;
-	type AssetId = u64;
-	type AssetIdParameter = u64;
-	type Currency = Balances;
-	type CreateOrigin = frame_support::traits::AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
-	type ForceOrigin = EnsureRoot<AccountId>;
-	type AssetDeposit = AssetDeposit;
-	type AssetAccountDeposit = frame_support::traits::ConstU128<1>;
-	type MetadataDepositBase = MetadataDepositBase;
-	type MetadataDepositPerByte = MetadataDepositPerByte;
-	type ApprovalDeposit = ApprovalDeposit;
-	type StringLimit = StringLimit;
-	type Freezer = ();
-	type Extra = ();
-	type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
-	type RemoveItemsLimit = frame_support::traits::ConstU32<1000>;
-	#[cfg(feature = "runtime-benchmarks")]
-	type BenchmarkHelper = ();
-   type CallbackHandle = ();
-}
-...
-```
-
-It is important to note that every built-in module has a different purpose, and therefore, have different needs in term of what must be configured. 
-
-### Add the module to the runtime {: #add-module-to-runtime }
-
-In the same `lib.rs` file, located in the folder */runtime/src* there is a section enclosed in the macro 'construct_runtime!()', this is where the pallet must be added to make the compiler include it within the runtime:
-
-```rust
-construct_runtime!(
-   pub enum Runtime where
-      Block = Block,
-      NodeBlock = opaque::Block,
-      UncheckedExtrinsic = UncheckedExtrinsic,
-   {
-      // System support stuff.
-      System: frame_system = 0,
-      ParachainSystem: cumulus_pallet_parachain_system = 1,
-      Timestamp: pallet_timestamp = 2,
-      ParachainInfo: parachain_info = 3,
-      Sudo: pallet_sudo = 4,
-      Utility: pallet_utility = 5,
-      ...
-      Balances: pallet_balances = 10,
-      Assets: pallet_assets = 11,
-      ...
-   }
-```
-
-### Configure the Module in the Chain Specification {: #configure-chain-specs }
-
-Finally, add the default configuration in the chain specification for the genesis, in the file `chain_spec` located in `container-chains/templates/frontier/node/src`
-
-```rust
-fn testnet_genesis(
-   endowed_accounts: Vec<AccountId>,
-   id: ParaId,
-   root_key: AccountId,
-) -> container_chain_template_frontier_runtime::GenesisConfig {
-   container_chain_template_frontier_runtime::GenesisConfig {
-      system: container_chain_template_frontier_runtime::SystemConfig {
-         code: container_chain_template_frontier_runtime::WASM_BINARY
-               .expect("WASM binary was not build, please build it!")
-               .to_vec(),
-      },
-      ...
-      assets: Default::default()
-      ...
-   }
+#[frame_support::pallet(dev_mode)]
+pub mod pallet {
+    ...
+    #[pallet::pallet]
+    pub struct Pallet<T>(_);
+    ...
 }
 ```
 
-With the module included, this new runtime version has unlocked a new set of functionalities ready to be composed with even more of the Substrate built-in modules or the custom-made ones.
+### Implementing `#[pallet::config]`
+
+To make the modules highly adaptable, they can be configured to the specific requirements of the use case the runtime implements.
+
+The implementation of the config macro is mandatory and sets the module's dependency on other modules and the types and values specified by the runtime settings.
+
+In this example, the lottery module depends on other modules to manage the currency and the random function to select the winner. More about module dependency in the [Substrate documentation](https://docs.substrate.io/build/pallet-coupling/){target=_blank}.
+
+This module also reads and uses the ticket price and the maximum number of participants directly from the runtime settings.
+
+```rust
+/// Configure the module by specifying the parameters 
+/// and types on which it depends.
+#[pallet::config]
+pub trait Config: frame_system::Config {
+
+    /// Because this pallet emits events, it depends on the 
+    /// runtime's definition of an event.
+    type RuntimeEvent: From<Event<Self>> 
+        + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
+    /// This module depends on other modules, such as balances and randomness
+    type Currency: Currency<Self::AccountId> 
+        + ReservableCurrency<Self::AccountId>
+        + LockableCurrency<Self::AccountId>;
+
+    type MyRandomness: Randomness<Self::Hash, BlockNumberFor<Self>>;
+
+    /// Some values that must be configured when adding the module 
+    /// to the runtime
+    #[pallet::constant]
+    type TicketCost: Get<BalanceOf<Self>>;
+
+    #[pallet::constant]
+    type MaxParticipants: Get<u32>;
+
+    #[pallet::constant]
+    type PalletId: Get<PalletId>;
+}
+```
+
+### Implementing `#[pallet::call]`
+
+The following code snippet shows the two transactions that this module exposes: buy_ticket and award_prize.
+
+
+```rust
+#[pallet::call]
+impl<T: Config> Pallet<T> {
+    
+    #[pallet::call_index(0)]
+    #[pallet::weight(0)]
+    pub fn buy_ticket(origin: OriginFor<T>) -> DispatchResult {
+        let buyer = ensure_signed(origin)?;
+
+        // Checks that the user has enough balance to afford the ticket price
+        ensure!(
+            T::Currency::free_balance(&buyer) >= T::TicketCost::get(),
+            Error::<T>::NotEnoughCurrency
+        );
+
+        // Checks that the user do not have a ticket yet
+        if let Some(participants) = Self::get_participants() {
+            ensure!(
+                !participants.contains(&buyer),
+                Error::<T>::AccountAlreadyParticipating
+            );
+        }
+
+        // Stores the user to participate in the lottery
+        match Self::get_participants() {
+            Some(mut participants) => { 
+                ensure!(
+                    participants.try_push(buyer.clone()).is_ok(), 
+                    Error::<T>::CanNotAddParticipant
+                );
+                Participants::<T>::set(Some(participants));
+            }, 
+            None => {
+                let mut participants = BoundedVec::new();
+                ensure!(
+                    participants.try_push(buyer.clone()).is_ok(), 
+                    Error::<T>::CanNotAddParticipant
+                );
+                Participants::<T>::set(Some(participants));
+            }
+        };
+
+        // Transfer the ticket cost to the module's account
+        T::Currency::transfer(&buyer, &Self::get_pallet_account(), T::TicketCost::get(), ExistenceRequirement::KeepAlive)?;
+        
+        // Notify the event
+        Self::deposit_event(Event::TicketBought { who: buyer });
+        Ok(())
+    }
+
+    #[pallet::call_index(1)]
+    #[pallet::weight(0)]
+    pub fn award_prize(origin: OriginFor<T>) -> DispatchResult {
+        let _who = ensure_root(origin)?;
+
+        match Self::get_participants() {
+            Some(participants) => { 
+                
+                // Gets a random number, using randomness module
+                let nonce = Self::get_and_increment_nonce();
+                let (random_seed, _) = T::MyRandomness::random(&nonce);
+                let random_number = <u32>::decode(&mut random_seed.as_ref())
+                    .expect("secure hashes should always be bigger than u32; qed");
+                
+                // Selects the winner 
+                let winner_index = random_number as usize % participants.len();
+                let winner = participants.as_slice().get(winner_index).unwrap();
+
+                // Transfers the total prize to the winner's account
+                let prize = T::Currency::free_balance(&Self::get_pallet_account());
+                T::Currency::transfer(&Self::get_pallet_account(), &winner, prize, ExistenceRequirement::AllowDeath)?;
+
+                // Resets the storage, and gets ready for another lottery round
+                Participants::<T>::kill();
+
+                Self::deposit_event(Event::PrizeAwarded { winner: winner.clone() } );
+            }, 
+            None => {
+                Self::deposit_event(Event::ThereAreNoParticipants);
+            }
+        };
+
+        Ok(())
+    }
+}
+```
+
+### Implementing `#[pallet::error]`
+
+This macro is applied to an enumeration of errors that might occur during the execution. It is important for security reasons to handle all error cases gracefully (and never crash in the runtime).
+
+```rust
+// Errors inform users that something went wrong.
+#[pallet::error]
+pub enum Error<T> {
+    NotEnoughCurrency,
+    AccountAlreadyParticipating,
+    CanNotAddParticipant,
+}
+```
+
+### Implementing `#[pallet::event]`
+
+This macro is applied to an enumeration of events to inform the user of any changes in the state or important actions that happened during the execution in the runtime.
+
+```rust
+#[pallet::event]
+#[pallet::generate_deposit(pub(super) fn deposit_event)]
+pub enum Event<T: Config> {
+    /// Event emitted when a ticket is bought
+    TicketBought { who: T::AccountId },
+    /// Event emitted when the prize is awarded
+    PrizeAwarded { winner: T::AccountId },
+    /// Event emitted when there are no participants
+    ThereAreNoParticipants,
+}
+```
+
+### Implementing `#[pallet::storage]`
+
+This macro initializes a runtime storage structure. In this example, a basic value storage structure is used to persist the list of participants.
+
+In the heavily constrained environment of an AppChain, deciding what to store and which structure to use can be critical in terms of performance. More on this topic is covered in the [Substrate documentation](https://docs.substrate.io/build/runtime-storage/){target=_blank}.
+
+```rust
+#[pallet::storage]
+#[pallet::getter(fn get_participants)]
+pub(super) type Participants<T: Config> = StorageValue<
+    _,
+    BoundedVec<T::AccountId, T::MaxParticipants>,
+    OptionQuery
+>;
+```
