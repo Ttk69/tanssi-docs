@@ -1,5 +1,5 @@
 ---
-title: Custom-Made Module
+title: Adding a Custom-Made Module
 description: Substrate is a modular blockchain framework that makes it easy to build unique and innovative Appchains composing built-in modules with custom-made ones.
 ---
 
@@ -14,7 +14,7 @@ The example presented in the [Modularity](/learn/framework/modules/#custom-modul
 - **Buy tickets**
 - **Award prize**
 
-To make that logic work, the module also uses storage, emits events, defines custom errors, and relies on other modules to handle currency (to charge for the tickets and transfer the total amount to the winner) and randomize the winner selection.
+The implementation of those transactions also uses storage, emits events, defines custom errors, and relies on other modules to handle currency (to charge for the tickets and transfer the total amount to the winner) and randomize the winner selection.
 
 To build and add the module to the runtime, at least the following steps are necessary: 
 
@@ -35,25 +35,25 @@ From the root folder of the repository, navigate to the folder `pallets`, where 
 cd container-chains/pallets
 ```
 
-Create the module with cargo, which creates a new package:
+Create the module package with cargo:
 
 ```bash
 cargo new lottery-example
 ```
 
-By default, the package is created containing a file `main.rs` located in a folder `src`, but to respect the naming convention used in Substrate, rename the file to `lib.rs`:
+By default, Cargo creates the new package in a folder with the provided name (lottery-example, in this case) containing a manifest file, `Cargo.toml`, and a `src` folder, with a `main.rs` file. To respect the naming convention used in Substrate, the `main.rs` file is renamed to `lib.rs`:
 
 ```bash
 mv lottery-example/src/main.rs lottery-example/src/lib.rs
 ```
 
-Now the module file `lib.rs` is created and ready to contain the custom logic.
+Now the module is created an ready to contain the custom logic.
 
 ## Configure the Module's Dependencies {: #configure-module-dependencies}
 
-As the module is an independent package, Cargo automatically creates a new `Cargo.toml` where the module attributes and dependencies must be defined.
+Being the module an independent package, it has its own `Cargo.toml` where the module attributes and dependencies must be defined.
 
-As an example of the attributes, the name of the module, version, authors, and other relevant information can be edited.
+As an example of the attributes, the name of the module, version, authors, and other relevant information can be set.
 
 ```toml
 [package]
@@ -65,7 +65,9 @@ homepage = ""
 ...
 ```
 
-This file also defines the module's dependencies, such as the core functionality that allows seamless integration with the runtime and other modules, access to storage, events emission, and more.
+This file also defines the module's dependencies, such as the core functionality that allows seamless integration with the runtime and other modules, access to storage, events emission, and more. 
+
+The full example of the file sets, besides the attributes, the dependencies required by Substrate.
 
 ??? code "View the complete toml file"
 
@@ -97,7 +99,8 @@ pub mod pallet {
     ...
     #[pallet::pallet]
     pub struct Pallet<T>(_);
-    ...
+    
+    // All the logic here
 }
 ```
 
@@ -146,8 +149,34 @@ This abstract definition of dependencies is crucial to avoid coupling to a speci
 
 ### Implementing `#[pallet::call]`
 
-are what in Substrate are called extrinsics. 
+Calls represent the behavior a runtime exposes, in the form of transactions that can be dispatched for processing.
 
+This is the general structure of a call:
+
+```rust
+#[pallet::call]
+impl<T: Config> Pallet<T> {
+    
+    #[pallet::call_index(0)]
+    #[pallet::weight(0)]
+    pub fn one_call(origin: OriginFor<T>) -> DispatchResult { }
+
+    #[pallet::call_index(1)]
+    #[pallet::weight(0)]
+    pub fn another_call(origin: OriginFor<T>) -> DispatchResult { }
+
+    // Other calls
+}
+```
+
+Every call is enclosed within the `#[pallet::call]` macro, and present the following elements: 
+
+- **Call Index** - is a mandatory unique identifier for every dispatchable call
+- **Weight** - is a measure of computational effort an extrinsic takes when being processed
+- **Origin** - identifies the signing account making the call
+- **Result** - the return value of the call, which might be an Error if anything goes wrong
+
+In this lottery example, we defined two calls with the following logic:
 
 ```rust
 #[pallet::call]
@@ -156,85 +185,38 @@ impl<T: Config> Pallet<T> {
     #[pallet::call_index(0)]
     #[pallet::weight(0)]
     pub fn buy_ticket(origin: OriginFor<T>) -> DispatchResult {
-        let buyer = ensure_signed(origin)?;
 
-        // Checks that the user has enough balance to afford the ticket price
-        ensure!(
-            T::Currency::free_balance(&buyer) >= T::TicketCost::get(),
-            Error::<T>::NotEnoughCurrency
-        );
-
-        // Checks that the user do not have a ticket yet
-        if let Some(participants) = Self::get_participants() {
-            ensure!(
-                !participants.contains(&buyer),
-                Error::<T>::AccountAlreadyParticipating
-            );
-        }
-
-        // Stores the user to participate in the lottery
-        match Self::get_participants() {
-            Some(mut participants) => { 
-                ensure!(
-                    participants.try_push(buyer.clone()).is_ok(), 
-                    Error::<T>::CanNotAddParticipant
-                );
-                Participants::<T>::set(Some(participants));
-            }, 
-            None => {
-                let mut participants = BoundedVec::new();
-                ensure!(
-                    participants.try_push(buyer.clone()).is_ok(), 
-                    Error::<T>::CanNotAddParticipant
-                );
-                Participants::<T>::set(Some(participants));
-            }
-        };
-
-        // Transfer the ticket cost to the module's account
-        T::Currency::transfer(&buyer, &Self::get_pallet_account(), T::TicketCost::get(), ExistenceRequirement::KeepAlive)?;
-        
-        // Notify the event
-        Self::deposit_event(Event::TicketBought { who: buyer });
-        Ok(())
+        // 1. Validates the origin signature
+        // 2. Checks that the user has enough balance to afford the ticket price
+        // 3. Checks that the user is not already participating
+        // 4. Adds the user as a new participant for the prize
+        // 5. Transfers the ticket cost to the module's account, to hold until transferred to the winner
+    
     }
 
     #[pallet::call_index(1)]
     #[pallet::weight(0)]
     pub fn award_prize(origin: OriginFor<T>) -> DispatchResult {
-        let _who = ensure_root(origin)?;
 
-        match Self::get_participants() {
-            Some(participants) => { 
-                
-                // Gets a random number, using randomness module
-                let nonce = Self::get_and_increment_nonce();
-                let (random_seed, _) = T::MyRandomness::random(&nonce);
-                let random_number = <u32>::decode(&mut random_seed.as_ref())
-                    .expect("secure hashes should always be bigger than u32; qed");
-                
-                // Selects the winner 
-                let winner_index = random_number as usize % participants.len();
-                let winner = participants.as_slice().get(winner_index).unwrap();
+        // 1. Validates the origin signature
+        // 2. Gets a random number from the randomness module
+        // 3. Selects the winner from the participants lit
+        // 4. Transfers the total prize to the winner's account
+        // 5. Resets the participants list, and gets ready for another lottery round
 
-                // Transfers the total prize to the winner's account
-                let prize = T::Currency::free_balance(&Self::get_pallet_account());
-                T::Currency::transfer(&Self::get_pallet_account(), &winner, prize, ExistenceRequirement::AllowDeath)?;
-
-                // Resets the storage, and gets ready for another lottery round
-                Participants::<T>::kill();
-
-                Self::deposit_event(Event::PrizeAwarded { winner: winner.clone() } );
-            }, 
-            None => {
-                Self::deposit_event(Event::ThereAreNoParticipants);
-            }
-        };
-
-        Ok(())
     }
 }
 ```
+
+These calls also emit events, to keep the user informed and can return errors, should any of the validations go wrong.
+
+Here is the complete implementation of the calls, with the custom lottery logic:
+
+??? code "View the complete calls code"
+
+    ```rust
+    --8<-- 'code/basic-substrate/lottery-example-calls.rs'
+    ```
 
 ### Implementing `#[pallet::error]`
 
@@ -325,3 +307,5 @@ construct_runtime!(
     }
 )
 ```
+
+With everything set, the Apchain has now support for a basic implementatios of a lottery.
